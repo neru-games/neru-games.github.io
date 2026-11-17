@@ -103,9 +103,19 @@
     font-size: 12px; font-weight: 700;
     border-radius: 8px; padding: 8px 16px;
   }
-  .slide .doc { padding: 20px; font-size: 13px; line-height: 2; color: var(--text); flex: 1; }
-  .slide .doc .fn { color: var(--lime); font-weight: 700; }
-  .slide .doc .cm { color: var(--sub); }
+  .slide .teaser {
+    aspect-ratio: 21 / 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    text-align: center; padding: 16px;
+    background: linear-gradient(160deg, #171724, #101018);
+  }
+  .slide .teaser .tt { font-size: 26px; font-weight: 700; letter-spacing: .12em; }
+  .slide .teaser .td { font-size: 12px; color: var(--sub); }
+  .slide .teaser .chips { display: flex; gap: 8px; margin-top: 4px; }
+  .slide .teaser .chips span {
+    border: 1px solid var(--line); border-radius: 999px;
+    font-size: 11px; color: var(--sub); padding: 2px 12px;
+  }
 
   .stream { position: relative; aspect-ratio: 21 / 10; overflow: hidden; background: #000; }
   .stream img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -261,10 +271,10 @@
           </div>
         </div>
         <div class="slide">
-          <div class="doc">
-            <span class="fn">消えた麦茶事件_特報.txt</span><br>
-            冷蔵庫の最後の一杯が消えた。犯人はこの家の中にいる。<br>
-            <span class="cm">※麦茶は本物です。推理ADV、制作中。</span>
+          <div class="teaser">
+            <div class="tt">消えた麦茶事件</div>
+            <div class="td">冷蔵庫の最後の一杯が消えた。犯人はこの家の中にいる。</div>
+            <div class="chips"><span>推理ADV</span><span>制作中</span></div>
           </div>
           <div class="bar">
             <div>
