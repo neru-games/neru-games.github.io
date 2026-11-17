@@ -133,14 +133,15 @@
   }
   .stream .comments {
     position: absolute; left: 8px; bottom: 8px;
-    width: 58%;
-    display: flex; flex-direction: column; justify-content: flex-end; gap: 6px;
+    width: 54%;
+    display: flex; flex-direction: column; justify-content: flex-end; gap: 4px;
   }
   .stream .comments p {
     background: rgba(8,8,13,.72);
     border-radius: 8px;
-    padding: 4px 8px;
-    font-size: 10px; line-height: 1.5; color: var(--text);
+    padding: 2px 8px;
+    font-size: 10px; line-height: 1.45; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .stream .comments b { color: var(--lime); font-weight: 700; }
 
@@ -256,10 +257,9 @@
             <span class="live">● 配信中</span>
             <span class="fake">架空の配信画面</span>
             <div class="comments">
-              <p><b>リスナーA</b> ねる様きた</p>
-              <p><b>リスナーB</b> その麦茶、例のやつだ</p>
-              <p><b>リスナーC</b> かんぱーい</p>
-              <p><b>リスナーD</b> 次のゲームまだ？</p>
+              <p><b>ねこぱんち</b> ねる様きた</p>
+              <p><b>つきみうどん</b> その麦茶、例のやつだ</p>
+              <p><b>ぽてと</b> かんぱーい</p>
             </div>
           </div>
           <div class="bar">
