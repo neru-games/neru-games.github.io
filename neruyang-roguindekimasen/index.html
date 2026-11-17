@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>ねる様、ログインできません！</title>
+    <style>
+      button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2rem; }
+
+      :root{
+        --bg:#ece9f4;
+        --bg-soft:#e2ddef;
+        --panel:#f7f5fc;
+        --panel-line:#c9c0dd;
+        --ink:#37324e;
+        --ink-soft:#6a6484;
+        --accent:#7a6ba3;
+        --accent-deep:#5d4f86;
+        --lime:#93a856;
+        --lime-soft:#c3d19a;
+        --lime-ink:#4c5a26;
+        --warn:#b06a5e;
+        --chat-bg:#e7e2f2;
+        --scene-glow:rgba(122,107,163,.16);
+        --shadow:0 10px 28px rgba(55,45,95,.16);
+      }
+      @media (prefers-color-scheme: dark){
+        :root{
+          --bg:#221e31;
+          --bg-soft:#2a2540;
+          --panel:#2e2947;
+          --panel-line:#4c4470;
+          --ink:#e8e4f4;
+          --ink-soft:#b3abcf;
+          --accent:#9a8bc4;
+          --accent-deep:#b7abdd;
+          --lime:#a9bd72;
+          --lime-soft:#5c6b3a;
+          --lime-ink:#d7e3ae;
+          --warn:#d99a8c;
+          --chat-bg:#383154;
+          --scene-glow:rgba(154,139,196,.18);
+          --shadow:0 10px 28px rgba(0,0,0,.4);
+        }
+      }
+      *{ box-sizing:border-box; }
+      html,body{ margin:0; padding:0; }
+      body{
+        background:var(--bg);
+        color:var(--ink);
+        font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic",system-ui,sans-serif;
+        -webkit-tap-highlight-color:transparent;
+      }
+      #app{
+        max-width:560px;
+        margin:0 auto;
+        padding:10px 12px 28px;
+        display:flex;
+        flex-direction:column;
+        gap:10px;
+        min-height:100dvh;
+      }
+
+      /* ---------- progress chips ---------- */
+      .progress{
+        display:flex; gap:8px; flex-wrap:wrap;
+      }
+      .chip{
+        flex:1 1 0;
+        min-width:96px;
+        display:flex; align-items:center; gap:7px;
+        background:var(--panel);
+        border:2px solid var(--panel-line);
+        border-radius:999px;
+        padding:7px 10px;
+        font-size:.8rem; font-weight:700;
+        color:var(--ink-soft);
+      }
+      .chip .dot{
+        width:14px; height:14px; border-radius:50%;
+        border:2px solid var(--panel-line);
+        background:transparent; flex:none;
+      }
+      .chip.done{ color:var(--ink); border-color:var(--lime); }
+      .chip.done .dot{ background:var(--lime); border-color:var(--lime); }
+      .chip.now{ border-color:var(--accent); color:var(--ink); }
+      .chip.now .dot{ border-color:var(--accent); }
+
+      /* ---------- scene ---------- */
+      .scene-wrap{
+        position:relative;
+        border-radius:18px;
+        overflow:hidden;
+        border:2px solid var(--panel-line);
+        box-shadow:var(--shadow);
+        background:var(--bg-soft);
+        aspect-ratio:800/560;
+      }
+      .scene-wrap svg{ display:block; width:100%; height:100%; }
+      .hotspot{
+        position:absolute;
+        border:none; background:transparent; cursor:pointer;
+        border-radius:14px; padding:0; margin:0;
+        min-height:44px; min-width:44px;
+      }
+      .hotspot::after{
+        content:"";
+        position:absolute; right:6px; top:6px;
+        width:16px; height:16px; border-radius:50%;
+        background:var(--lime);
+        border:2.5px solid #fff;
+        box-shadow:0 1px 5px rgba(40,30,80,.35);
+        animation:pulse 1.8s ease-in-out infinite;
+      }
+      .hotspot:active{ background:var(--scene-glow); }
+      .hotspot:focus-visible{ outline:3px solid var(--accent); outline-offset:-3px; }
+      .hotspot.off::after{ display:none; }
+      @keyframes pulse{
+        0%,100%{ transform:scale(1); opacity:.95; }
+        50%{ transform:scale(1.35); opacity:.6; }
+      }
+      @media (prefers-reduced-motion: reduce){
+        .hotspot::after{ animation:none; }
+      }
+      .scene-wrap.talking .hotspot::after{ opacity:.25; animation:none; }
+
+      .power-on-glow{ filter:drop-shadow(0 0 10px rgba(200,220,140,.9)); }
+
+      /* ---------- dialogue ---------- */
+      .dialogue{
+        background:var(--panel);
+        border:2px solid var(--panel-line);
+        border-radius:16px;
+        box-shadow:var(--shadow);
+        padding:12px 14px 10px;
+        min-height:138px;
+        display:flex; flex-direction:column; gap:8px;
+        cursor:pointer;
+        text-align:left; width:100%;
+        font:inherit; color:inherit;
+      }
+      .speaker{
+        align-self:flex-start;
+        font-size:.78rem; font-weight:800;
+        padding:3px 12px; border-radius:999px;
+        background:var(--accent); color:#fff;
+        letter-spacing:.04em;
+      }
+      .speaker.you{ background:var(--lime); color:#2f3a14; }
+      @media (prefers-color-scheme: dark){ .speaker.you{ color:#1e2610; } }
+      .speaker.chat{ background:var(--ink-soft); }
+      .speaker.sys{ background:transparent; color:var(--ink-soft); border:1.5px dashed var(--panel-line); }
+      .dtext{ font-size:1.02rem; line-height:1.75; white-space:pre-wrap; }
+      .dnext{
+        align-self:flex-end;
+        font-size:.78rem; color:var(--ink-soft); font-weight:700;
+      }
+      .dnext .tri{ display:inline-block; animation:bob 1.2s ease-in-out infinite; }
+      @keyframes bob{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(3px);} }
+      @media (prefers-reduced-motion: reduce){ .dnext .tri{ animation:none; } }
+
+      .actions{ display:flex; gap:8px; }
+      .btn{
+        flex:1;
+        font:inherit; font-weight:800; font-size:.92rem;
+        border-radius:12px; padding:12px 10px;
+        border:2px solid var(--accent);
+        background:var(--panel); color:var(--accent-deep);
+        cursor:pointer; min-height:48px;
+      }
+      .btn:active{ transform:scale(.98); }
+      .btn.primary{ background:var(--accent); color:#fff; }
+      .btn.lime{ background:var(--lime); border-color:var(--lime); color:#2f3a14; }
+      .btn:disabled{ opacity:.4; cursor:default; }
+      .btn.small{ flex:none; padding:8px 16px; min-height:44px; }
+
+      /* ---------- panels ---------- */
+      .overlay{
+        position:fixed; inset:0; z-index:30;
+        background:rgba(30,25,50,.55);
+        display:none;
+        align-items:flex-end; justify-content:center;
+      }
+      .overlay.open{ display:flex; }
+      .sheet{
+        background:var(--panel); color:var(--ink);
+        width:100%; max-width:560px; max-height:92dvh; overflow-y:auto;
+        border-radius:20px 20px 0 0;
+        padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+        box-shadow:var(--shadow);
+      }
+      @media (min-width:640px){
+        .overlay{ align-items:center; padding:20px; }
+        .sheet{ border-radius:20px; }
+      }
+      .sheet h2{ margin:0 0 4px; font-size:1.12rem; }
+      .sheet .sub{ margin:0 0 14px; font-size:.86rem; color:var(--ink-soft); line-height:1.6; }
+      .sheet .note{
+        background:var(--chat-bg); border-radius:12px;
+        padding:10px 12px; font-size:.9rem; line-height:1.7; margin-top:14px;
+      }
+      .sheet .note b{ color:var(--accent-deep); }
+
+      /* puzzle board */
+      .board{
+        display:flex; flex-direction:column; gap:6px;
+        background:#241f38; border-radius:14px; padding:12px;
+      }
+      .brow{ display:flex; gap:6px; align-items:center; }
+      .brow .rlabel{ color:#8f86ad; font-size:.72rem; width:1.2em; text-align:center; flex:none; font-weight:700; }
+      .cell{
+        flex:1; aspect-ratio:1/1; border-radius:6px;
+        background:#3a3357;
+      }
+      .cell.on{ background:var(--lime-soft); box-shadow:inset 0 0 0 2px rgba(255,255,255,.25); }
+      @media (prefers-color-scheme: dark){ .cell.on{ background:var(--lime); } }
+
+      /* order puzzle */
+      .slots{ display:flex; gap:8px; margin-bottom:6px; }
+      .slot{
+        flex:1; min-height:92px;
+        border:2.5px dashed var(--panel-line); border-radius:14px;
+        display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+        font-size:.74rem; font-weight:700; color:var(--ink-soft);
+        background:transparent; font-family:inherit; cursor:pointer; padding:6px 2px;
+      }
+      .slot.filled{ border-style:solid; border-color:var(--lime); color:var(--ink); background:var(--bg-soft); }
+      .slot .num{ font-size:.68rem; color:var(--accent); font-weight:800; }
+      .tray{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+      .item{
+        flex:1 1 40%;
+        display:flex; align-items:center; gap:9px;
+        border:2px solid var(--panel-line); background:var(--bg-soft);
+        border-radius:12px; padding:10px; cursor:pointer;
+        font:inherit; font-weight:800; font-size:.88rem; color:var(--ink);
+        min-height:52px; text-align:left;
+      }
+      .item:active{ transform:scale(.97); }
+      .item.used{ opacity:.32; pointer-events:none; }
+      .item svg{ flex:none; }
+      .slot svg{ flex:none; }
+      .shake{ animation:shake .4s ease; }
+      @keyframes shake{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-7px);} 75%{transform:translateX(7px);} }
+      @media (prefers-reduced-motion: reduce){ .shake{ animation:none; } }
+
+      /* login */
+      .pin-disp{
+        display:flex; gap:10px; justify-content:center; margin:8px 0 16px;
+      }
+      .pin-disp span{
+        width:52px; height:60px; border-radius:12px;
+        border:2.5px solid var(--panel-line); background:var(--bg-soft);
+        display:flex; align-items:center; justify-content:center;
+        font-size:1.7rem; font-weight:900; color:var(--accent-deep);
+      }
+      .pad{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+      .pad button{
+        font:inherit; font-size:1.3rem; font-weight:900;
+        padding:14px 0; border-radius:12px; min-height:58px;
+        border:2px solid var(--panel-line); background:var(--bg-soft); color:var(--ink);
+        cursor:pointer;
+      }
+      .pad button:active{ background:var(--accent); color:#fff; }
+      .pad button.fn{ font-size:.92rem; }
+
+      /* ending */
+      .ending-card{ text-align:center; }
+      .ending-card .op{
+        font-size:1.65rem; font-weight:900; line-height:1.45;
+        color:var(--accent-deep); margin:10px 0 2px;
+      }
+      .ending-card .live{
+        display:inline-block; margin-top:8px;
+        background:var(--warn); color:#fff; font-weight:900;
+        padding:4px 16px; border-radius:999px; font-size:.85rem; letter-spacing:.14em;
+      }
+      .chatflow{
+        margin:16px 0; text-align:left;
+        display:flex; flex-direction:column; gap:7px;
+        max-height:min(44dvh, 340px); overflow-y:auto; overflow-x:hidden;
+        -webkit-overflow-scrolling:touch;
+        overscroll-behavior:contain;
+        padding-right:4px;
+        scrollbar-width:thin;
+        scrollbar-color:var(--panel-line) transparent;
+      }
+      .chatflow::-webkit-scrollbar{ width:6px; }
+      .chatflow::-webkit-scrollbar-thumb{ background:var(--panel-line); border-radius:3px; }
+      .chatflow::-webkit-scrollbar-track{ background:transparent; }
+      .chatline{
+        background:var(--chat-bg); border-radius:10px;
+        padding:7px 11px; font-size:.88rem; line-height:1.5;
+        animation:rise .5s ease both;
+      }
+      .chatline b{ color:var(--accent-deep); }
+      @keyframes rise{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
+      @media (prefers-reduced-motion: reduce){ .chatline{ animation:none; } }
+      .fin{ font-size:.85rem; color:var(--ink-soft); margin:12px 0 16px; }
+    </style>
+  </head>
+  <body>
+    <main id="app">
+      <div class="progress" aria-label="なぞの進み具合">
+        <div class="chip now" id="chip1"><span class="dot"></span>盤面のヒント</div>
+        <div class="chip" id="chip2"><span class="dot"></span>麦茶さがし</div>
+        <div class="chip" id="chip3"><span class="dot"></span>機材の並び</div>
+      </div>
+
+      <div class="scene-wrap" id="sceneWrap">
+        <svg viewBox="0 0 800 560" role="img" aria-label="ねるのゲーミング部屋">
+          <!-- wall & floor -->
+          <rect x="0" y="0" width="800" height="400" fill="#cfc6e4"/>
+          <rect x="0" y="400" width="800" height="160" fill="#a99cc9"/>
+          <rect x="0" y="392" width="800" height="10" fill="#8f81b5"/>
+          <ellipse cx="400" cy="492" rx="270" ry="42" fill="#bcaed8"/>
+          <!-- window -->
+          <g>
+            <rect x="308" y="26" width="190" height="140" rx="10" fill="#5d5480"/>
+            <rect x="320" y="38" width="166" height="116" rx="6" fill="#7d72a3"/>
+            <circle cx="448" cy="66" r="13" fill="#e9e2c8"/>
+            <circle cx="352" cy="58" r="4" fill="#d9d2ee"/><circle cx="386" cy="92" r="3" fill="#d9d2ee"/>
+            <circle cx="430" cy="118" r="3.4" fill="#d9d2ee"/><circle cx="356" cy="128" r="2.6" fill="#d9d2ee"/>
+            <rect x="292" y="18" width="26" height="160" rx="10" fill="#8a7bb5"/>
+            <rect x="488" y="18" width="26" height="160" rx="10" fill="#8a7bb5"/>
+          </g>
+          <!-- poster -->
+          <g>
+            <rect x="556" y="52" width="86" height="112" rx="6" fill="#efeaf8"/>
+            <rect x="566" y="62" width="66" height="60" rx="4" fill="#b7a9d9"/>
+            <path d="M578 108 l14-22 12 14 10-10 8 18z" fill="#7a6ba3"/>
+            <rect x="566" y="130" width="66" height="8" rx="4" fill="#c9c0dd"/>
+            <rect x="578" y="144" width="42" height="8" rx="4" fill="#ddd5ee"/>
+          </g>
+          <!-- shelf (left) -->
+          <g>
+            <rect x="26" y="150" width="150" height="268" rx="10" fill="#6d5f97"/>
+            <rect x="38" y="162" width="126" height="244" rx="6" fill="#584b7d"/>
+            <rect x="38" y="238" width="126" height="8" fill="#6d5f97"/>
+            <rect x="38" y="322" width="126" height="8" fill="#6d5f97"/>
+            <!-- game cases row1 -->
+            <rect x="46" y="182" width="16" height="56" rx="2" fill="#93a856"/>
+            <rect x="66" y="178" width="16" height="60" rx="2" fill="#b7a9d9"/>
+            <rect x="86" y="184" width="16" height="54" rx="2" fill="#8fb0b5"/>
+            <rect x="106" y="180" width="16" height="58" rx="2" fill="#c9a3b8"/>
+            <rect x="126" y="186" width="16" height="52" rx="2" fill="#a9bd72"/>
+            <!-- plush row2 -->
+            <circle cx="72" cy="292" r="24" fill="#b7a9d9"/>
+            <circle cx="63" cy="272" r="8" fill="#b7a9d9"/><circle cx="81" cy="272" r="8" fill="#b7a9d9"/>
+            <circle cx="65" cy="290" r="3" fill="#37324e"/><circle cx="79" cy="290" r="3" fill="#37324e"/>
+            <circle cx="126" cy="296" r="19" fill="#c3d19a"/>
+            <circle cx="120" cy="294" r="2.6" fill="#37324e"/><circle cx="132" cy="294" r="2.6" fill="#37324e"/>
+            <!-- boxes row3 -->
+            <rect x="48" y="352" width="52" height="46" rx="4" fill="#7a6ba3"/>
+            <rect x="108" y="360" width="44" height="38" rx="4" fill="#9788bd"/>
+          </g>
+          <!-- equipment rack (right) -->
+          <g>
+            <rect x="622" y="118" width="156" height="180" rx="10" fill="#6d5f97"/>
+            <rect x="634" y="130" width="132" height="156" rx="6" fill="#584b7d"/>
+            <rect x="634" y="204" width="132" height="7" fill="#6d5f97"/>
+            <!-- jumbled gear: mic tilted, camera, ring light -->
+            <g transform="rotate(24 668 168)">
+              <rect x="660" y="140" width="16" height="42" rx="8" fill="#d9d2ee"/>
+              <rect x="664" y="180" width="8" height="22" fill="#37324e"/>
+            </g>
+            <rect x="700" y="152" width="46" height="32" rx="6" fill="#37324e"/>
+            <circle cx="723" cy="168" r="10" fill="#8fb0b5"/>
+            <circle cx="676" cy="252" r="26" fill="none" stroke="#d9d2ee" stroke-width="9"/>
+            <rect x="742" y="228" width="14" height="34" rx="6" fill="#93a856"/>
+            <rect x="745" y="216" width="8" height="14" rx="4" fill="#c3d19a"/>
+          </g>
+          <!-- mini fridge -->
+          <g>
+            <rect x="640" y="330" width="128" height="142" rx="12" fill="#8f9bb0"/>
+            <rect x="640" y="382" width="128" height="6" fill="#77839a"/>
+            <rect x="652" y="344" width="10" height="26" rx="5" fill="#5d687e"/>
+            <rect x="652" y="396" width="10" height="30" rx="5" fill="#5d687e"/>
+            <rect x="700" y="352" width="52" height="20" rx="4" fill="#b7a9d9"/>
+          </g>
+          <!-- desk -->
+          <g>
+            <rect x="222" y="318" width="380" height="16" rx="6" fill="#5d4f86"/>
+            <rect x="238" y="334" width="14" height="96" fill="#4c3f70"/>
+            <rect x="572" y="334" width="14" height="96" fill="#4c3f70"/>
+            <!-- main monitor -->
+            <g id="mainMonitor">
+              <rect x="392" y="196" width="150" height="102" rx="8" fill="#241f38"/>
+              <rect x="402" y="206" width="130" height="82" rx="4" fill="#332c50"/>
+              <circle cx="467" cy="238" r="15" fill="none" stroke="#9a8bc4" stroke-width="5"/>
+              <rect x="462" y="250" width="10" height="14" rx="3" fill="#9a8bc4"/>
+              <rect x="458" y="298" width="18" height="20" fill="#241f38"/>
+            </g>
+            <!-- sub monitor -->
+            <g id="subMonitor">
+              <rect x="238" y="212" width="118" height="84" rx="8" fill="#241f38"/>
+              <rect x="247" y="221" width="100" height="66" rx="4" fill="#2e2750"/>
+              <g fill="#a9bd72">
+                <rect x="252" y="226" width="11" height="11" rx="2"/><rect x="265" y="226" width="11" height="11" rx="2"/><rect x="291" y="226" width="11" height="11" rx="2"/><rect x="317" y="226" width="11" height="11" rx="2"/>
+                <rect x="278" y="240" width="11" height="11" rx="2"/><rect x="330" y="240" width="11" height="11" rx="2"/>
+                <rect x="252" y="254" width="11" height="11" rx="2"/><rect x="265" y="254" width="11" height="11" rx="2"/><rect x="278" y="254" width="11" height="11" rx="2"/><rect x="291" y="254" width="11" height="11" rx="2"/><rect x="304" y="254" width="11" height="11" rx="2"/><rect x="317" y="254" width="11" height="11" rx="2"/><rect x="330" y="254" width="11" height="11" rx="2"/>
+                <rect x="265" y="268" width="11" height="11" rx="2"/><rect x="304" y="268" width="11" height="11" rx="2"/><rect x="317" y="268" width="11" height="11" rx="2"/>
+              </g>
+              <rect x="290" y="296" width="14" height="22" fill="#241f38"/>
+            </g>
+            <!-- keyboard & mug -->
+            <rect x="392" y="306" width="120" height="10" rx="5" fill="#37324e"/>
+            <rect x="540" y="292" width="26" height="26" rx="5" fill="#b7a9d9"/>
+            <path d="M566 298 q12 6 0 14" fill="none" stroke="#b7a9d9" stroke-width="5"/>
+            <!-- photo frame on desk -->
+            <g>
+              <rect x="556" y="252" width="40" height="48" rx="4" fill="#efeaf8"/>
+              <rect x="562" y="258" width="28" height="28" rx="3" fill="#9788bd"/>
+              <circle cx="576" cy="268" r="6" fill="#e9e2c8"/>
+              <path d="M562 286 l10-10 6 6 5-4 7 8z" fill="#5d4f86"/>
+            </g>
+            <!-- PC tower -->
+            <g>
+              <rect x="196" y="330" width="34" height="100" rx="7" fill="#332c50"/>
+              <circle id="pcLed" cx="213" cy="348" r="5" fill="#57497e"/>
+              <rect x="204" y="366" width="18" height="4" rx="2" fill="#57497e"/>
+              <rect x="204" y="376" width="18" height="4" rx="2" fill="#57497e"/>
+            </g>
+          </g>
+          <!-- power strip -->
+          <g id="powerStrip">
+            <rect x="600" y="462" width="86" height="24" rx="12" fill="#efeaf8"/>
+            <circle cx="622" cy="474" r="5" fill="#c9c0dd"/><circle cx="644" cy="474" r="5" fill="#c9c0dd"/>
+            <circle id="stripLed" cx="668" cy="474" r="5" fill="#b06a5e"/>
+            <path d="M686 474 q40 4 52 26" fill="none" stroke="#37324e" stroke-width="5"/>
+          </g>
+          <!-- penlight stand -->
+          <g>
+            <rect x="96" y="428" width="90" height="12" rx="6" fill="#5d4f86"/>
+            <g transform="rotate(-10 116 428)"><rect x="111" y="392" width="10" height="38" rx="5" fill="#d9d2ee"/><rect x="108" y="378" width="16" height="18" rx="7" fill="#a9bd72"/></g>
+            <g transform="rotate(6 148 428)"><rect x="143" y="392" width="10" height="38" rx="5" fill="#d9d2ee"/><rect x="140" y="378" width="16" height="18" rx="7" fill="#a9bd72"/></g>
+            <rect x="104" y="440" width="74" height="34" rx="6" fill="#6d5f97"/>
+          </g>
+          <!-- Neru: back view, hood with cat ears (hood attachment) -->
+          <g id="neruFigure">
+            <ellipse cx="404" cy="520" rx="86" ry="14" fill="#8f81b5"/>
+            <path d="M352 520 q-6-96 52-104 q58 8 52 104z" fill="#4c3f70"/>
+            <path d="M330 520 q0-70 34-92 l80 0 q34 22 34 92z" fill="#5d4f86"/>
+            <!-- hood -->
+            <path d="M356 428 q-4-64 48-70 q52 6 48 70 q-2 26-20 34 l-56 0 q-18-8-20-34z" fill="#6d5f97"/>
+            <!-- hood cat ears -->
+            <path d="M362 372 l-6-34 q-1-8 7-6 l26 12 q-16 8-27 28z" fill="#6d5f97"/>
+            <path d="M446 372 l6-34 q1-8-7-6 l-26 12 q16 8 27 28z" fill="#6d5f97"/>
+            <path d="M364 366 l-3-20 l16 8 q-8 4-13 12z" fill="#c3a3bd"/>
+            <path d="M444 366 l3-20 l-16 8 q8 4 13 12z" fill="#c3a3bd"/>
+            <!-- hair peeking -->
+            <path d="M372 424 q32 14 64 0 l-4 16 q-28 10-56 0z" fill="#37324e"/>
+            <!-- tail of hoodie strings / chair -->
+            <rect x="338" y="470" width="132" height="16" rx="8" fill="#37324e"/>
+          </g>
+        </svg>
+
+        <button class="hotspot" id="hs-window" style="left:36%;top:2%;width:22%;height:28%" aria-label="窓を調べる"></button>
+        <button class="hotspot" id="hs-shelf" style="left:1%;top:24%;width:21%;height:52%" aria-label="棚を調べる"></button>
+        <button class="hotspot" id="hs-sub" style="left:28%;top:34%;width:17%;height:22%" aria-label="サブモニターを調べる"></button>
+        <button class="hotspot" id="hs-main" style="left:47%;top:32%;width:21%;height:24%" aria-label="メインモニターとPCを調べる"></button>
+        <button class="hotspot" id="hs-photo" style="left:68%;top:42%;width:9%;height:14%" aria-label="写真立てを調べる"></button>
+        <button class="hotspot" id="hs-rack" style="left:76%;top:18%;width:22%;height:34%" aria-label="機材ラックを調べる"></button>
+        <button class="hotspot" id="hs-fridge" style="left:78%;top:56%;width:20%;height:28%" aria-label="ミニ冷蔵庫を調べる"></button>
+        <button class="hotspot" id="hs-penlight" style="left:10%;top:64%;width:14%;height:22%" aria-label="ペンライト立てを調べる"></button>
+        <button class="hotspot" id="hs-neru" style="left:40%;top:58%;width:20%;height:38%" aria-label="ねるに話しかける"></button>
+        <button class="hotspot" id="hs-desk" style="left:30%;top:78%;width:32%;height:18%" aria-label="机の下を調べる"></button>
+        <button class="hotspot" id="hs-power" style="left:72%;top:80%;width:16%;height:12%" aria-label="電源タップを調べる"></button>
+      </div>
+
+      <button class="dialogue" id="dialogueBox" aria-live="polite">
+        <span class="speaker sys" id="dSpeaker">――</span>
+        <span class="dtext" id="dText">……</span>
+        <span class="dnext" id="dNext">タップで進む <span class="tri">▼</span></span>
+      </button>
+
+      <div class="actions">
+        <button class="btn" id="hintBtn">ねるに聞く（ヒント）</button>
+        <button class="btn" id="lookBtn">あたりを見回す</button>
+      </div>
+    </main>
+
+    <!-- puzzle board panel -->
+    <div class="overlay" id="boardPanel" role="dialog" aria-modal="true" aria-label="パズルゲームの盤面">
+      <div class="sheet">
+        <h2>サブモニターの盤面</h2>
+        <p class="sub">昨日ねるがクリアしたパズルゲームの盤面。ライム色に光るマスが、段ごとに並んでいる。</p>
+        <div class="board" id="boardGrid"></div>
+        <div class="note"><b>ねる：</b>「光ってるマスの数だな。列じゃねーぞ、<b>横の段ごと</b>に、<b>上から順に</b>数えてみろ。……4桁の暗証番号と、数が合うはずだ」</div>
+        <div class="actions" style="margin-top:14px">
+          <button class="btn primary" id="boardClose">もどる</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- order panel -->
+    <div class="overlay" id="orderPanel" role="dialog" aria-modal="true" aria-label="機材の並び替え">
+      <div class="sheet">
+        <h2>機材を並び替える</h2>
+        <p class="sub">ラックの前に機材を左から順番に並べよう。下の機材をタップすると、左の空きマスから置かれる。置いたマスをタップすると戻せる。</p>
+        <div class="slots" id="slots"></div>
+        <div class="tray" id="tray"></div>
+        <div class="note" id="orderNote"><b>ねる：</b>「いつもの並びがあるんだよ。忘れたなら、机の写真立てを見てこい。あれが正解の並びだ」</div>
+        <div class="actions" style="margin-top:14px">
+          <button class="btn" id="orderClose">もどる</button>
+          <button class="btn lime" id="orderCheck">これでOK！</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- login panel -->
+    <div class="overlay" id="loginPanel" role="dialog" aria-modal="true" aria-label="ログイン画面">
+      <div class="sheet">
+        <h2>ログイン画面</h2>
+        <p class="sub">4桁の暗証番号を入力してください。</p>
+        <div class="pin-disp" id="pinDisp"><span></span><span></span><span></span><span></span></div>
+        <div class="pad" id="pad">
+          <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+          <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+          <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+          <button data-k="C" class="fn">けす</button><button data-k="0">0</button><button data-k="OK" class="fn">決定</button>
+        </div>
+        <div class="note" id="loginNote"><b>ねる：</b>「頼むぞ……俺の配信生命がかかってる」</div>
+        <div class="actions" style="margin-top:14px">
+          <button class="btn" id="loginClose">もどる</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ending panel -->
+    <div class="overlay" id="endingPanel" role="dialog" aria-modal="true" aria-label="配信開始">
+      <div class="sheet ending-card">
+        <div class="live">● LIVE</div>
+        <p class="op">ねる様、ログイン中！</p>
+        <p class="sub" style="text-align:center">配信、はじまった――！</p>
+        <div class="chatflow" id="chatFlow"></div>
+        <p class="fin">短編脱出ADV『ねる様、ログインできません！』　おしまい。<br>遊んでくれてサンキュな。</p>
+        <div class="actions">
+          <button class="btn primary" id="replayBtn">もう一度遊ぶ</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    (function(){
+      "use strict";
+      var $ = function(id){ return document.getElementById(id); };
+      var sceneWrap = $("sceneWrap"), dBox = $("dialogueBox"),
+          dSpeaker = $("dSpeaker"), dText = $("dText"), dNext = $("dNext");
+
+      /* ---------------- state ---------------- */
+      var S = {
+        stage: 0,          // 0 intro -> 1 board, 2 mugicha, 3 order, 4 login, 5 end
+        pinSeen:false, mugicha:false, ordered:false, power:false,
+        boardSeen:false, photoSeen:false,
+        wrongPin:0, fridgeHint:false
+      };
+
+      /* ---------------- audio (tiny) ---------------- */
+      var AC = null;
+      function beep(freq, t, dur){
+        try{
+          if(!AC) AC = new (window.AudioContext||window.webkitAudioContext)();
+          if(AC.state === "suspended") AC.resume();
+          var o = AC.createOscillator(), g = AC.createGain();
+          o.type = "sine"; o.frequency.value = freq;
+          g.gain.setValueAtTime(0.0001, AC.currentTime + t);
+          g.gain.exponentialRampToValueAtTime(0.12, AC.currentTime + t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + t + dur);
+          o.connect(g); g.connect(AC.destination);
+          o.start(AC.currentTime + t); o.stop(AC.currentTime + t + dur + 0.05);
+        }catch(e){}
+      }
+      function jingle(){ beep(523,0,.16); beep(659,.13,.16); beep(784,.26,.3); }
+      function buzz(){ beep(160,0,.22); }
+
+      /* ---------------- dialogue engine ---------------- */
+      var queue = [], current = null, onDone = null;
+      function say(lines, cb){
+        queue = lines.slice(); onDone = cb || null;
+        sceneWrap.classList.add("talking");
+        next();
+      }
+      function next(){
+        if(queue.length === 0){
+          current = null;
+          sceneWrap.classList.remove("talking");
+          dNext.style.visibility = "hidden";
+          if(onDone){ var f = onDone; onDone = null; f(); }
+          return;
+        }
+        current = queue.shift();
+        dSpeaker.textContent = current.who === "neru" ? "ねる" :
+          current.who === "you" ? "あなた（コメント）" :
+          current.who === "chat" ? "コメント" : "――";
+        dSpeaker.className = "speaker " + current.who;
+        dText.textContent = current.text;
+        dNext.style.visibility = "visible";
+        dNext.innerHTML = queue.length ? 'タップで進む <span class="tri">▼</span>' : 'タップで閉じる <span class="tri">▼</span>';
+      }
+      dBox.addEventListener("click", function(){ if(current) next(); });
+      function N(t){ return {who:"neru", text:t}; }
+      function Y(t){ return {who:"you", text:t}; }
+      function SYS(t){ return {who:"sys", text:t}; }
+      function busy(){ return !!current; }
+
+      /* ---------------- chips ---------------- */
+      function chips(){
+        $("chip1").className = "chip" + (S.pinSeen ? " done" : (S.stage<=1 ? " now" : ""));
+        $("chip2").className = "chip" + (S.mugicha ? " done" : (S.stage===2 ? " now" : ""));
+        $("chip3").className = "chip" + (S.ordered ? " done" : (S.stage===3 ? " now" : ""));
+      }
+
+      /* ---------------- intro ---------------- */
+      function intro(){
+        say([
+          SYS("配信開始まで、あと10分――。"),
+          N("おい、ちょっと待て待て待て。……ログインできねーんだけど！？"),
+          N("PCにロックがかかってやがる。暗証番号は昨日変えたばっかで、俺もあやふやなんだよな……"),
+          Y("ねる様、落ち着いて。早く来たから、コメント越しに手伝うよ"),
+          N("お、早入りリスナーか。サンキュ、助かる。……って、配信者がリスナーに助けられるってどうなんだ、俺"),
+          N("まあいい、背に腹は代えられねー。部屋の気になるところをタップして調べてくれ。緑の丸が目印だ"),
+          N("手がかりは俺のサブモニターだ。昨日のパズルゲームの盤面が、残ったままになってる")
+        ], function(){ S.stage = 1; chips(); });
+      }
+
+      /* ---------------- hotspots ---------------- */
+      function bind(id, fn){
+        $(id).addEventListener("click", function(){ if(!busy()) fn(); });
+      }
+
+      bind("hs-sub", function(){
+        openBoard();
+        if(!S.boardSeen){
+          S.boardSeen = true;
+          say([
+            N("それ、俺が昨日ドヤ顔でクリアしたパズルの盤面だ"),
+            N("光ってるマスの並び……なんか意味ありそうじゃね？ 暗証番号、4桁だったはずだし")
+          ]);
+        }
+      });
+
+      bind("hs-main", function(){
+        if(!S.power){
+          say([
+            N("メインモニターは真っ暗だ。電源タップが落ちてるからな……"),
+            N("まずは機材をどうにかしないと、こっちは映らねーよ")
+          ]);
+        } else if(S.stage >= 4){
+          openLogin();
+        } else {
+          say([ N("電源は入った。あとは暗証番号だ") ]);
+        }
+      });
+
+      bind("hs-window", function(){
+        say([
+          N("外はもう暗いな。配信の時間だ"),
+          Y("（窓の外、星がきれい。……場合じゃない）")
+        ]);
+      });
+
+      bind("hs-shelf", function(){
+        if(S.stage === 2 && !S.mugicha){
+          say([
+            Y("棚はゲームのケースとぬいぐるみでいっぱいだ。麦茶はないみたい"),
+            N("そこは俺の宝物庫だぞ。麦茶なんか置くわけねーだろ")
+          ]);
+        } else {
+          say([
+            N("俺のコレクションだ。並び順は俺にしか分からん芸術だからな、触るなよ"),
+            Y("（触ってないのに怒られた）")
+          ]);
+        }
+      });
+
+      bind("hs-photo", function(){
+        S.photoSeen = true;
+        if(S.stage >= 3 && !S.ordered){
+          say([
+            Y("写真立て……いつもの配信セットの写真だ"),
+            Y("左から、リングライト → カメラ → マイク → ペンライト の順に並んでる"),
+            N("それがいつもの並びだ。明かり、映す、声、最後にペンライトで締め。覚えたか？")
+          ]);
+        } else {
+          say([
+            Y("机の写真立て。配信セットがきれいに並んだ写真が入ってる"),
+            N("俺の部屋が一番整ってた瞬間だな。二度と来ないかもしれん")
+          ]);
+        }
+      });
+
+      bind("hs-desk", function(){
+        if(S.stage === 2 && !S.mugicha){
+          say([
+            Y("机の下は配線と、ちょっとほこりが……"),
+            N("おい、俺の部屋が汚いみたいに言うな。……まあ麦茶はそこじゃねーよ")
+          ]);
+        } else {
+          say([
+            N("机の下は配線のジャングルだ。下手に触ると全部抜けるぞ"),
+            Y("（そっとしておこう）")
+          ]);
+        }
+      });
+
+      bind("hs-fridge", function(){
+        if(S.stage === 2 && !S.mugicha){
+          S.mugicha = true;
+          say([
+            Y("ミニ冷蔵庫の奥に、ラベルのないボトルが1本……"),
+            N("あー！ それそれ！ 冷やしといたんだよ、俺の麦茶！"),
+            Y("……この甘い香り、麦茶じゃないよね？"),
+            N("麦茶（甘い酒）だ。文句あっか。……ほら、うめー。頭が回ってきた"),
+            Y("（冷蔵庫でキンキンに冷えた「麦茶」。ツッコミは置いておく）"),
+            N("よし、落ち着いた。……って、おい。機材がぐちゃぐちゃじゃねーか。さっき慌てて引っ張り出したからな"),
+            N("ラックの前の機材、いつもの並びに戻してくれ。並びが揃わないと電源タップが入らねー仕組みなんだよ")
+          ], function(){ S.stage = 3; chips(); });
+        } else if(S.stage < 2){
+          say([
+            N("冷蔵庫には飲み物が入ってる。今はそれどころじゃねーだろ"),
+            Y("（……あとで絶対、意味があるやつだ）")
+          ]);
+        } else {
+          say([ N("もう麦茶は飲んだ。追加はいらねーよ、配信前だぞ") ]);
+        }
+      });
+
+      bind("hs-penlight", function(){
+        say([
+          N("俺のペンライト。ライム色が俺の色だからな"),
+          N("配信の締めはこれを振るのがお約束だ。……だから並び順でも、ペンライトは最後なんだよ"),
+          Y("（大事なヒントな気がする）")
+        ]);
+      });
+
+      bind("hs-rack", function(){
+        if(S.stage >= 3 && !S.ordered){
+          openOrder();
+        } else if(S.ordered){
+          say([ N("機材はバッチリ並んでる。あとは電源だ") ]);
+        } else {
+          say([
+            N("機材ラックだ。今はぐちゃぐちゃだけどな……"),
+            N("マイクにカメラにリングライト。配信者の命だ、大事に扱えよ")
+          ]);
+        }
+      });
+
+      bind("hs-power", function(){
+        if(S.ordered && !S.power){
+          S.power = true;
+          $("stripLed").setAttribute("fill", "#a9bd72");
+          $("pcLed").setAttribute("fill", "#a9bd72");
+          $("powerStrip").classList.add("power-on-glow");
+          jingle();
+          say([
+            SYS("カチッ。電源タップのランプがライム色に光った！"),
+            N("電源、入った！！ よし、あとはログインだけだ"),
+            N("メインモニターをタップしてくれ。盤面の数字、覚えてるな？")
+          ], function(){ S.stage = 4; chips(); });
+        } else if(S.power){
+          say([ N("電源はもう入ってる。ログインだ、ログイン") ]);
+        } else if(S.stage >= 3){
+          say([
+            N("電源タップは機材の並びが揃わないと入らねーんだ。安全装置ってやつ"),
+            N("まずラックの機材を並び替えてくれ")
+          ]);
+        } else {
+          say([ N("電源タップ、今は落ちてる。機材を揃えるのが先だな") ]);
+        }
+      });
+
+      bind("hs-neru", function(){
+        if(S.stage <= 1){
+          say([ N("俺をタップすんな。……いや、気持ちはサンキュ。まず盤面だ、盤面") ]);
+        } else if(S.stage === 2){
+          say([ N("麦茶……俺の麦茶どこやったっけな。冷えてるやつが飲みてーんだよ") , Y("（冷えてる、がヒントかも）") ]);
+        } else if(S.stage === 3){
+          say([ N("並び順なら写真立てだ。机の上、見てこい") ]);
+        } else if(S.stage >= 4){
+          say([ N("暗証番号は盤面だ。光るマスを上から数えたやつ。頼んだぞ") ]);
+        }
+      });
+
+      /* hint & look buttons */
+      $("hintBtn").addEventListener("click", function(){
+        if(busy()) return;
+        if(S.stage <= 1) say([ N("サブモニターの盤面だ。光るマスを段ごとに数えろ。それが暗証番号のヒントだ") ]);
+        else if(S.stage === 2) say([ N("麦茶は冷やしてあるはずだ。……冷やす場所なんて、部屋に1つしかねーだろ") ]);
+        else if(S.stage === 3) say([ N("機材の並びは写真立てが正解だ。左から、明かり・カメラ・マイク・ペンライトだぞ") ]);
+        else if(S.stage >= 4) say([ N("メインモニターからログイン画面だ。盤面で数えた4桁を入れてくれ") ]);
+        else say([ N("もう配信中だ。楽しんでけ") ]);
+      });
+      $("lookBtn").addEventListener("click", function(){
+        if(busy()) return;
+        say([
+          SYS("部屋を見回した。光る緑の丸が、調べられる場所の目印だ。"),
+          N("モニター、棚、ラック、冷蔵庫……片っ端から当たってくれ")
+        ]);
+      });
+
+      /* ---------------- puzzle board ---------------- */
+      var ROWS = [
+        [1,1,0,1,0,1,0],
+        [0,0,1,0,0,0,1],
+        [1,1,1,1,1,1,1],
+        [0,1,0,0,1,1,0]
+      ];
+      (function buildBoard(){
+        var g = $("boardGrid");
+        ROWS.forEach(function(row, i){
+          var r = document.createElement("div"); r.className = "brow";
+          var lab = document.createElement("span"); lab.className = "rlabel"; lab.textContent = (i+1);
+          r.appendChild(lab);
+          row.forEach(function(v){
+            var c = document.createElement("div");
+            c.className = "cell" + (v ? " on" : "");
+            r.appendChild(c);
+          });
+          g.appendChild(r);
+        });
+      })();
+      function openBoard(){ $("boardPanel").classList.add("open"); }
+      $("boardClose").addEventListener("click", function(){
+        $("boardPanel").classList.remove("open");
+        if(S.boardSeen && !S.pinSeen){
+          S.pinSeen = true; chips();
+          say([
+            SYS("盤面を覚えた！ 光るマスの数が、暗証番号のヒントになっている。"),
+            N("4桁の数字が見えたはずだ。……っと、その前にだ"),
+            N("喉がカラカラで頭が回らねー。俺の麦茶、探してくれよ。冷やしてあるやつだ")
+          ], function(){ if(S.stage < 2){ S.stage = 2; chips(); } });
+        }
+      });
+
+      /* ---------------- order puzzle ---------------- */
+      var ITEMS = {
+        light:{ name:"リングライト", svg:'<svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="13" r="8" fill="none" stroke="#9a8bc4" stroke-width="4"/><rect x="13" y="21" width="4" height="7" fill="#7a6ba3"/></svg>' },
+        camera:{ name:"カメラ", svg:'<svg width="30" height="30" viewBox="0 0 30 30"><rect x="3" y="9" width="24" height="15" rx="3" fill="#5d4f86"/><circle cx="15" cy="16.5" r="5" fill="#8fb0b5"/><rect x="10" y="5" width="8" height="4" rx="2" fill="#5d4f86"/></svg>' },
+        mic:{ name:"マイク", svg:'<svg width="30" height="30" viewBox="0 0 30 30"><rect x="11" y="3" width="8" height="15" rx="4" fill="#7a6ba3"/><path d="M7 14 q0 9 8 9 q8 0 8-9" fill="none" stroke="#7a6ba3" stroke-width="2.5"/><rect x="13.5" y="23" width="3" height="5" fill="#7a6ba3"/></svg>' },
+        pen:{ name:"ペンライト", svg:'<svg width="30" height="30" viewBox="0 0 30 30"><rect x="12.5" y="13" width="5" height="14" rx="2.5" fill="#cfc6e4"/><rect x="10" y="3" width="10" height="11" rx="5" fill="#a9bd72"/></svg>' }
+      };
+      var ANSWER = ["light","camera","mic","pen"];
+      var placed = [];
+      function renderOrder(){
+        var slots = $("slots"); slots.innerHTML = "";
+        for(var i=0;i<4;i++){
+          (function(i){
+            var b = document.createElement("button");
+            b.className = "slot" + (placed[i] ? " filled" : "");
+            if(placed[i]){
+              b.innerHTML = '<span class="num">' + (i+1) + '番目</span>' + ITEMS[placed[i]].svg + "<span>" + ITEMS[placed[i]].name + "</span>";
+            } else {
+              b.innerHTML = '<span class="num">' + (i+1) + '番目</span><span>からっぽ</span>';
+            }
+            b.addEventListener("click", function(){
+              if(placed[i]){ placed.splice(i,1); renderOrder(); }
+            });
+            slots.appendChild(b);
+          })(i);
+        }
+        var tray = $("tray"); tray.innerHTML = "";
+        Object.keys(ITEMS).forEach(function(key){
+          var b = document.createElement("button");
+          b.className = "item" + (placed.indexOf(key) >= 0 ? " used" : "");
+          b.innerHTML = ITEMS[key].svg + "<span>" + ITEMS[key].name + "</span>";
+          b.addEventListener("click", function(){
+            if(placed.length < 4 && placed.indexOf(key) < 0){ placed.push(key); renderOrder(); }
+          });
+          tray.appendChild(b);
+        });
+      }
+      function openOrder(){ renderOrder(); $("orderPanel").classList.add("open"); }
+      $("orderClose").addEventListener("click", function(){ $("orderPanel").classList.remove("open"); });
+      $("orderCheck").addEventListener("click", function(){
+        if(placed.length < 4){
+          $("orderNote").innerHTML = "<b>ねる：</b>「まだ全部並んでねーぞ。4つ全部置いてからだ」";
+          return;
+        }
+        var ok = ANSWER.every(function(k, i){ return placed[i] === k; });
+        if(ok){
+          S.ordered = true; chips();
+          $("orderPanel").classList.remove("open");
+          jingle();
+          say([
+            SYS("機材がいつもの並びに揃った！"),
+            N("そうそう、それだ！ 俺の配信セット、完成だな"),
+            N("あとは床の電源タップだ。タップしてみろ、ランプが点くはずだ")
+          ]);
+        } else {
+          buzz();
+          var s = $("slots"); s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake");
+          $("orderNote").innerHTML = "<b>ねる：</b>「違う違う、それじゃねー。" + (S.photoSeen ? "写真の並び、思い出せ。明かり・カメラ・マイク・ペンライトだ" : "机の写真立てを見てこい。あれが正解の並びだ") + "」";
+        }
+      });
+
+      /* ---------------- login ---------------- */
+      var pin = "";
+      function renderPin(){
+        var spans = $("pinDisp").children;
+        for(var i=0;i<4;i++) spans[i].textContent = pin[i] || "";
+      }
+      function openLogin(){ pin = ""; renderPin(); $("loginPanel").classList.add("open"); }
+      $("loginClose").addEventListener("click", function(){ $("loginPanel").classList.remove("open"); });
+      $("pad").addEventListener("click", function(e){
+        var b = e.target.closest("button"); if(!b) return;
+        var k = b.getAttribute("data-k");
+        if(k === "C"){ pin = pin.slice(0,-1); renderPin(); return; }
+        if(k === "OK"){ checkPin(); return; }
+        if(pin.length < 4){ pin += k; renderPin(); if(pin.length === 4) checkPin(); }
+      });
+      function checkPin(){
+        if(pin.length < 4){
+          $("loginNote").innerHTML = "<b>ねる：</b>「4桁だ、4桁。落ち着いて入れ直せ」";
+          return;
+        }
+        if(pin === "4273"){
+          $("loginPanel").classList.remove("open");
+          S.stage = 5; jingle();
+          say([
+            SYS("――ピッ。ログイン成功！"),
+            N("入った！ ログイン成功だ、やったじゃねーか！ マジで天才か、お前"),
+            N("ありがとな、マジで助かった。早入りした甲斐があっただろ"),
+            Y("ねる様、配信の時間だよ"),
+            N("おう。じゃあ行くぞ。いつものアレで始める――")
+          ], ending);
+        } else {
+          S.wrongPin++; buzz();
+          var msgs = [
+            "「違うな。盤面、もう一回見てこい。光るマスを上から数えるんだぞ」",
+            "「おい、勘で打つな。俺でもやらねーぞ、それは」",
+            "「段ごとにだ。いちばん上の段から順番に、だぞ」"
+          ];
+          $("loginNote").innerHTML = "<b>ねる：</b>" + msgs[Math.min(S.wrongPin-1, msgs.length-1)];
+          pin = ""; renderPin();
+        }
+      }
+
+      /* ---------------- ending ---------------- */
+      var CHATS = [
+        ["ねる推し侍", "来た来た来た！"],
+        ["早入り常連", "今日は一段と早かった自信ある"],
+        ["通りすがり", "ログイン中！ の曲から始まるの最高"],
+        ["ねる推し侍", "ねる様ーー！！"],
+        ["コメント職人", "今日も謎解き配信？ 楽しみ"],
+        ["早入り常連", "（今日のログイン、ちょっと裏側を知っている）"],
+        ["みんな", "配信開始おめでとう！！"]
+      ];
+      function ending(){
+        $("endingPanel").classList.add("open");
+        var flow = $("chatFlow"); flow.innerHTML = "";
+        var pinned = true;
+        flow.addEventListener("scroll", function(){
+          pinned = flow.scrollTop + flow.clientHeight >= flow.scrollHeight - 28;
+        });
+        CHATS.forEach(function(c, i){
+          var d = document.createElement("div");
+          d.className = "chatline";
+          d.style.animationDelay = (i * 0.45) + "s";
+          d.innerHTML = "<b>" + c[0] + "：</b>" + c[1];
+          flow.appendChild(d);
+          setTimeout(function(){
+            if(pinned) flow.scrollTop = flow.scrollHeight;
+          }, i * 450 + 520);
+        });
+        jingle();
+      }
+      $("replayBtn").addEventListener("click", function(){ location.reload(); });
+
+      chips();
+      intro();
+    })();
+    </script>
+  </body>
+</html>
